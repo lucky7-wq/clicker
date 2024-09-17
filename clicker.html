@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>連打力測定</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            text-align: center;
+            padding: 20px;
+            transition: background 0.5s, color 0.5s;
+        }
+
+        /* 共通のスタイル */
+        #menu, #game, #scoreboard {
+            display: none; /* 初期状態で非表示 */
+        }
+        #menu, #game, #scoreboard {
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            background: var(--bg-color, white);
+            color: var(--text-color, #333);
+        }
+        #menu h1, #game h1, #scoreboard h2 {
+            color: var(--header-color, #4a90e2);
+            font-family: 'Arial', sans-serif;
+        }
+        #menu button, #clickButton, #exitFromGame, #backToMenu {
+            font-size: 20px;
+            padding: 12px 24px;
+            margin: 10px;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: background 0.3s, transform 0.2s;
+            background: var(--button-bg, #4a90e2);
+            color: var(--button-text, white);
+        }
+        #menu button:hover, #clickButton:hover, #exitFromGame:hover, #backToMenu:hover {
+            background: var(--button-hover-bg, #357abd);
+            transform: scale(1.05);
+        }
+        #clickButton {
+            font-size: 36px; /* フォントサイズを大きく */
+            padding: 20px 40px; /* パディングを大きく */
+            background: var(--click-button-bg, #ff6f61);
+            border-radius: 15px;
+        }
+        #clickButton:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+        #timer, #score, #countdown {
+            font-size: 24px;
+            margin-bottom: 20px;
+            color: var(--timer-color, #4a90e2);
+        }
+        #scoreboard {
+            font-size: 22px;
+        }
+        #scoreboard .rank {
+            margin: 10px 0;
+            font-weight: bold;
+        }
+        #backToMenu {
+            font-size: 24px; /* フォントサイズを少し大きく */
+            padding: 15px 30px; /* パディングを少し大きく */
+            background: var(--back-button-bg, #e94e77);
+            border-radius: 15px;
+        }
+        #backToMenu:hover {
+            background: var(--back-button-hover-bg, #d83f6e);
+        }
+        /* プログレスバーのスタイル */
+        #progressContainer {
+            width: 100%;
+            height: 30px;
+            background: var(--progress-bg, #e0e0e0);
+            border-radius: 15px;
+            overflow: hidden;
+            margin-top: 20px;
+        }
+        #progressBar {
+            height: 100%;
+            background: var(--progress-bar-bg, #4a90e2);
+            width: 100%; /* 初期状態で満杯 */
+            transition: width 0.5s;
+        }
+
+        /* テーマ */
+        .theme-light {
+            --bg-color: #f9f9f9;
+            --text-color: #333;
+            --header-color: #4a90e2;
+            --button-bg: #4a90e2;
+            --button-text: white;
+            --button-hover-bg: #357abd;
+            --click-button-bg: #ff6f61;
+            --timer-color: #4a90e2;
+            --back-button-bg: #e94e77;
+            --back-button-hover-bg: #d83f6e;
+            --progress-bg: #e0e0e0;
+            --progress-bar-bg: #4a90e2;
+        }
+
+        .theme-dark {
+            --bg-color: #333;
+            --text-color: #f9f9f9;
+            --header-color: #f4a261;
+            --button-bg: #f4a261;
+            --button-text: #333;
+            --button-hover-bg: #e07b39;
+            --click-button-bg: #e07b39;
+            --timer-color: #f4a261;
+            --back-button-bg: #a83232;
+            --back-button-hover-bg: #8e2b2b;
+            --progress-bg: #555;
+            --progress-bar-bg: #f4a261;
+        }
+
+        .theme-blue {
+            --bg-color: #e0f7fa;
+            --text-color: #004d40;
+            --header-color: #00796b;
+            --button-bg: #00796b;
+            --button-text: #ffffff;
+            --button-hover-bg: #004d40;
+            --click-button-bg: #004d40;
+            --timer-color: #00796b;
+            --back-button-bg: #004d40;
+            --back-button-hover-bg: #00332e;
+            --progress-bg: #b2dfdb;
+            --progress-bar-bg: #00796b;
+        }
+    </style>
+</head>
+<body>
+    <div id="menu">
+        <h1>連打力測定</h1>
+        <p>制限時間を選んでください:</p>
+        <button data-time="5">5秒</button>
+        <button data-time="10">10秒</button>
+        <button data-time="20">20秒</button>
+        <button data-time="60">60秒</button>
+        <br><br>
+        <button id="exitButton">やめる</button> <!-- 追加したボタン -->
+        <br><br>
+        <h2>テーマを選択:</h2>
+        <button id="themeLight">ライトテーマ</button>
+        <button id="themeDark">ダークテーマ</button>
+        <button id="themeBlue">ブルーテーマ</button>
+    </div>
+
+    <div id="game">
+        <div id="countdown">ゲーム開始まで: 3秒</div>
+        <div id="score">得点: 0</div>
+        <div id="timer">残り時間: 60秒</div>
+        <div id="progressContainer">
+            <div id="progressBar"></div>
+        </div>
+        <button id="clickButton" disabled>クリック！</button> <!-- 初期状態で無効化 -->
+        <br><br>
+        <button id="exitFromGame">メニューに戻る</button> <!-- ゲーム中の「やめる」ボタン -->
+    </div>
+
+    <div id="scoreboard">
+        <h2>最高得点ランキング</h2>
+        <div id="rank5" class="scoreboard">
+            <div class="rank" id="rank5-1">5秒 1位: -</div>
+            <div class="rank" id="rank5-2">5秒 2位: -</div>
+            <div class="rank" id="rank5-3">5秒 3位: -</div>
+        </div>
+        <div id="rank10" class="scoreboard">
+            <div class="rank" id="rank10-1">10秒 1位: -</div>
+            <div class="rank" id="rank10-2">10秒 2位: -</div>
+            <div class="rank" id="rank10-3">10秒 3位: -</div>
+        </div>
+        <div id="rank20" class="scoreboard">
+            <div class="rank" id="rank20-1">20秒 1位: -</div>
+            <div class="rank" id="rank20-2">20秒 2位: -</div>
+            <div class="rank" id="rank20-3">20秒 3位: -</div>
+        </div>
+        <div id="rank60" class="scoreboard">
+            <div class="rank" id="rank60-1">60秒 1位: -</div>
+            <div class="rank" id="rank60-2">60秒 2位: -</div>
+            <div class="rank" id="rank60-3">60秒 3位: -</div>
+        </div>
+        <button id="backToMenu">メニューに戻る</button> <!-- スコアボードの「メニューに戻る」ボタン -->
+    </div>
+
+    <script>
+        // エレメントの取得
+        const menu = document.getElementById('menu');
+        const game = document.getElementById('game');
+        const scoreboard = document.getElementById('scoreboard');
+        const clickButton = document.getElementById('clickButton');
+        const timerDisplay = document.getElementById('timer');
+        const scoreDisplay = document.getElementById('score');
+        const progressBar = document.getElementById('progressBar');
+        const countdownDisplay = document.getElementById('countdown');
+        const exitButton = document.getElementById('exitButton');
+        const exitFromGame = document.getElementById('exitFromGame');
+        const backToMenu = document.getElementById('backToMenu');
+
+        let countdownInterval;
+        let timerInterval;
+        let timeRemaining;
+        let score;
+        let gameDuration = 10; // デフォルトの制限時間
+        const ranks = {
+            5: [document.getElementById('rank5-1'), document.getElementById('rank5-2'), document.getElementById('rank5-3')],
+            10: [document.getElementById('rank10-1'), document.getElementById('rank10-2'), document.getElementById('rank10-3')],
+            20: [document.getElementById('rank20-1'), document.getElementById('rank20-2'), document.getElementById('rank20-3')],
+            60: [document.getElementById('rank60-1'), document.getElementById('rank60-2'), document.getElementById('rank60-3')]
+        };
+
+        // 秒数を選択するボタンのクリック処理
+        menu.querySelectorAll('button[data-time]').forEach(button => {
+            button.addEventListener('click', () => {
+                gameDuration = parseInt(button.getAttribute('data-time'), 10);
+                startGame();
+            });
+        });
+
+        // 「やめる」ボタンのクリック処理（メニューに戻る）
+        exitButton.addEventListener('click', () => {
+            if (confirm('ゲームを終了しますか？')) {
+                window.close(); // タブを閉じる（ブラウザの制限により動作しないことがあります）
+                // サポートしていないブラウザの場合、以下の代替処理を追加
+                if (!window.closed) {
+                    alert('このブラウザではタブを閉じることができません。手動でタブを閉じてください。');
+                }
+            }
+        });
+
+        // ゲーム中の「メニューに戻る」ボタンのクリック処理
+        exitFromGame.addEventListener('click', () => {
+            if (confirm('ゲームを中断してメニューに戻りますか？')) {
+                stopGame(); // ゲームを中断
+                menu.style.display = 'block'; // メニュー画面を表示
+                game.style.display = 'none'; // ゲーム画面を非表示
+                scoreboard.style.display = 'none'; // スコアボードを非表示
+            }
+        });
+
+        // スコアボードの「メニューに戻る」ボタンのクリック処理
+        backToMenu.addEventListener('click', () => {
+            menu.style.display = 'block'; // メニュー画面を表示
+            scoreboard.style.display = 'none'; // スコアボードを非表示
+        });
+
+        // ボタンのクリック処理
+        clickButton.addEventListener('click', () => {
+            if (timeRemaining > 0) {
+                score++;
+                scoreDisplay.textContent = `得点: ${score}`;
+            }
+        });
+
+        // ゲーム開始タイマーのカウントダウン
+        function startCountdown() {
+            let countdownTime = 3;
+            countdownInterval = setInterval(() => {
+                countdownTime--;
+                countdownDisplay.textContent = `ゲーム開始まで: ${countdownTime}秒`;
+
+                if (countdownTime <= 0) {
+                    clearInterval(countdownInterval);
+                    countdownDisplay.textContent = ''; // カウントダウン表示を消す
+                    startTimer(); // ゲームタイマーを開始
+                }
+            }, 1000); // 1秒ごとに更新
+        }
+
+        // ゲームの開始処理
+        function startGame() {
+            menu.style.display = 'none'; // メニュー画面を非表示
+            game.style.display = 'block'; // ゲーム画面を表示
+            scoreboard.style.display = 'none'; // スコアボードを非表示
+            timeRemaining = gameDuration; // 制限時間を設定
+            score = 0; // 得点をリセット
+            scoreDisplay.textContent = `得点: ${score}`;
+            timerDisplay.textContent = `残り時間: ${timeRemaining}秒`;
+            progressBar.style.width = '100%'; // ゲージを満杯にする
+            clickButton.style.display = 'inline-block'; // ボタンを表示
+            clickButton.disabled = true; // カウントダウン中は無効化
+            startCountdown(); // カウントダウンを開始
+        }
+
+        // タイマーの開始
+        function startTimer() {
+            clickButton.disabled = false; // カウントダウン終了後にボタンを有効化
+            timerInterval = setInterval(() => {
+                timeRemaining--;
+                timerDisplay.textContent = `残り時間: ${timeRemaining}秒`;
+
+                // プログレスバーの幅を更新
+                const progress = (timeRemaining / gameDuration) * 100;
+                progressBar.style.width = `${progress}%`;
+
+                if (timeRemaining <= 0) {
+                    clearInterval(timerInterval);
+                    clickButton.disabled = true; // ボタンを無効化
+                    timerDisplay.textContent = '時間切れ！';
+                    recordScore(); // ゲーム終了時にスコアを記録
+                    showScoreboard(); // スコアボードを表示
+                }
+            }, 1000); // 1秒ごとに更新
+        }
+
+        // ゲームを中断する処理
+        function stopGame() {
+            clearInterval(timerInterval);
+            clearInterval(countdownInterval);
+            clickButton.disabled = true; // ボタンを無効化
+        }
+
+        // スコアを記録し、ランキングを更新
+        function recordScore() {
+            let scores = JSON.parse(localStorage.getItem(`scores_${gameDuration}`)) || [];
+            scores.push(score);
+            scores.sort((a, b) => b - a); // 降順にソート
+
+            // 1位から3位までのスコアを保存
+            if (scores.length > 3) {
+                scores = scores.slice(0, 3);
+            }
+            localStorage.setItem(`scores_${gameDuration}`, JSON.stringify(scores));
+        }
+
+        // スコアボードの表示
+        function showScoreboard() {
+            menu.style.display = 'none'; // メニュー画面を非表示
+            game.style.display = 'none'; // ゲーム画面を非表示
+            scoreboard.style.display = 'block'; // スコアボードを表示
+            updateScoreboard(); // スコアボードを更新
+        }
+
+        // スコアボードの更新
+        function updateScoreboard() {
+            // すべてのスコアボードを非表示にする
+            Object.keys(ranks).forEach(duration => {
+                document.getElementById(`rank${duration}`).style.display = 'none';
+            });
+            // 選択された制限時間のスコアボードのみ表示
+            document.getElementById(`rank${gameDuration}`).style.display = 'block';
+
+            // スコアを表示する
+            const scores = JSON.parse(localStorage.getItem(`scores_${gameDuration}`)) || [];
+            for (let i = 1; i <= 3; i++) {
+                ranks[gameDuration][i].textContent = `${gameDuration}秒 ${i}位: ${scores[i - 1] !== undefined ? scores[i - 1] : '-'}`;
+            }
+        }
+
+        // テーマ変更の処理
+        document.getElementById('themeLight').addEventListener('click', () => {
+            document.body.className = 'theme-light';
+        });
+
+        document.getElementById('themeDark').addEventListener('click', () => {
+            document.body.className = 'theme-dark';
+        });
+
+        document.getElementById('themeBlue').addEventListener('click', () => {
+            document.body.className = 'theme-blue';
+        });
+
+        // 初期状態としてメニューを表示
+        menu.style.display = 'block';
+    </script>
+</body>
+</html>
